@@ -6,7 +6,9 @@
 
 # setuptools BẮT BUỘC giữ ở đây vì drf-yasg 1.21.7 còn import pkg_resources;
 # Python 3.12 trở đi không còn bundle setuptools trong venv mặc định nữa.
-setuptools
+# PHẢI pin <81: setuptools 81+ đã loại bỏ module pkg_resources khỏi wheel
+# (drf-yasg 1.21.7 chưa migrate sang importlib.metadata, kẹt lại với pkg_resources).
+setuptools<81
 Django==5.0.6
 djangorestframework==3.15.1
 drf-yasg==1.21.7
