@@ -1,8 +1,11 @@
-setuptools
+# Production dependencies — chạy server Django REST trên Render / gunicorn.
+# KHÔNG kèm pandas / numpy / openpyxl ở đây vì chúng chỉ phục vụ lệnh
+# `python manage.py import_excel` chạy 1 lần ở local; gộp vào sẽ làm OOM
+# trên Render free tier (512 MB RAM build).
+# Khi cần chạy import_excel ở máy local thì: pip install -r requirements-dev.txt
+
 Django==5.0.6
 djangorestframework==3.15.1
 drf-yasg==1.21.7
-# pandas + openpyxl: để chạy lệnh import_excel
-pandas==2.2.2
-openpyxl==3.1.2
 gunicorn==23.0.0
+whitenoise==6.7.0

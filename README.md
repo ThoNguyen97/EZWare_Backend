@@ -39,10 +39,16 @@ EZWare_Backend/
     └── reports/     # low-stock
 ```
 
-## Cách chạy
+## Cách chạy ở local
+
+Có 2 file requirements:
+
+- `requirements.txt` — production deps (Django, DRF, drf-yasg, gunicorn, whitenoise). Render đọc file này.
+- `requirements-dev.txt` — kèm thêm pandas + openpyxl để chạy được lệnh `import_excel` ở local.
 
 ```bash
-pip install -r requirements.txt
+# Cài đặt: dùng -dev nếu muốn import data mẫu từ Excel
+pip install -r requirements-dev.txt
 
 python manage.py makemigrations accounts products warehouses inventory
 python manage.py migrate
@@ -58,6 +64,22 @@ python manage.py shell -c "from ezware.accounts.models import User; User.objects
 
 python manage.py runserver
 ```
+
+## Deploy lên Render
+
+1. Push repo lên GitHub.
+2. Tạo Web Service trên https://render.com, kết nối repo.
+3. Cấu hình:
+   - **Build Command**: `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate`
+   - **Start Command**: `gunicorn ezware.wsgi:application`
+4. Environment Variables (Settings → Environment):
+   | Key | Value |
+   |---|---|
+   | `DJANGO_SECRET_KEY` | Bấm nút "Generate" để random |
+   | `DJANGO_DEBUG` | `False` |
+   | `DJANGO_ALLOWED_HOSTS` | `<tên-app>.onrender.com` |
+
+> Lưu ý: SQLite trên Render free tier sẽ reset mỗi lần deploy vì filesystem ephemeral. Cho đồ án demo dùng được; production cần đổi sang Postgres managed của Render.
 
 Tài khoản mẫu (sau khi import Excel):
 - admin01 / 123456 (admin)

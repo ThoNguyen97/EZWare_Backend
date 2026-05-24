@@ -1,10 +1,16 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-ezware-python'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+# ----------------------------------------------------------------------------
+# Cấu hình bảo mật & môi trường: ưu tiên đọc từ biến môi trường (Render, .env),
+# có fallback an toàn cho lúc chạy local. Các giá trị fallback CHỈ DÙNG CHO DEV
+# — khi deploy production phải set env vars thật trên Render dashboard.
+# ----------------------------------------------------------------------------
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-ezware-python')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
 
 INSTALLED_APPS = [
@@ -29,6 +35,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # whitenoise: serve static files (CSS/JS của Swagger UI) trên production
+    # mà không cần Nginx — đặt ngay sau SecurityMiddleware theo doc whitenoise.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,6 +84,11 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# whitenoise nén + cache-bust static files (CompressedManifestStorage thêm hash
+# vào filename, giúp browser cache mãnh liệt mà không sợ stale).
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 

@@ -1,0 +1,8 @@
+# Local development dependencies — bao gồm cả pandas/openpyxl để chạy lệnh
+# `python manage.py import_excel EZWare_DuLieuMau.xlsx --reset` (nạp data mẫu).
+# Render KHÔNG đọc file này, chỉ đọc requirements.txt cho production.
+
+-r requirements.txt
+pandas==2.2.2
+numpy<2.0
+openpyxl==3.1.2
