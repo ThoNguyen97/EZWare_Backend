@@ -1,0 +1,296 @@
+{
+  "info": {
+    "name": "EZWare_Backend v2 API",
+    "description": "Collection cho schema v2. Token tự lưu vào biến sau khi login. Trước khi chạy: chạy server + import_excel để có dữ liệu mẫu.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "http://127.0.0.1:8000"},
+    {"key": "admin_token", "value": ""},
+    {"key": "staff_token", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "1. Đăng ký Staff",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api","auth","register"]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"newstaff\",\n  \"password\": \"123456\",\n  \"email\": \"newstaff@ezware.vn\",\n  \"full_name\": \"Nhân viên mới\",\n  \"phone\": \"0905555555\"\n}"}
+          }
+        },
+        {
+          "name": "2. Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"admin01\",\n  \"password\": \"123456\"\n}"}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "if (pm.response.code === 200) {",
+            "  const d = pm.response.json();",
+            "  pm.collectionVariables.set('admin_token', d.token);",
+            "}"
+          ], "type": "text/javascript"}}]
+        },
+        {
+          "name": "3. Login Staff",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"nv01\",\n  \"password\": \"123456\"\n}"}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "if (pm.response.code === 200) {",
+            "  const d = pm.response.json();",
+            "  pm.collectionVariables.set('staff_token', d.token);",
+            "}"
+          ], "type": "text/javascript"}}]
+        },
+        {
+          "name": "4. GET /api/auth/me",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/api/auth/me", "host": ["{{base_url}}"], "path": ["api","auth","me"]}
+          }
+        },
+        {
+          "name": "5. Logout",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Token {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api","auth","logout"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Nhóm 1 - Dữ liệu nền",
+      "item": [
+        {
+          "name": "POST Tạo Product (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{admin_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/products", "host": ["{{base_url}}"], "path": ["api","products"]},
+            "body": {"mode": "raw", "raw": "{\n  \"product_code\": \"LAP002\",\n  \"product_name\": \"MacBook Air M2\",\n  \"product_type\": \"Đồ điện tử\",\n  \"product_description\": \"Laptop Apple\",\n  \"is_active\": true\n}"}
+          }
+        },
+        {
+          "name": "GET /api/products (chỉ trả is_active=True)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{staff_token}}"}],
+            "url": {"raw": "{{base_url}}/api/products", "host": ["{{base_url}}"], "path": ["api","products"]}
+          }
+        },
+        {
+          "name": "GET Chi tiết Product",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{staff_token}}"}],
+            "url": {"raw": "{{base_url}}/api/products/1", "host": ["{{base_url}}"], "path": ["api","products","1"]}
+          }
+        },
+        {
+          "name": "PUT Cập nhật Product (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{admin_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/products/1", "host": ["{{base_url}}"], "path": ["api","products","1"]},
+            "body": {"mode": "raw", "raw": "{\n  \"product_code\": \"LAP001\",\n  \"product_name\": \"Laptop Dell XPS 13 (mới)\",\n  \"product_type\": \"Đồ điện tử\",\n  \"is_active\": true\n}"}
+          }
+        },
+        {
+          "name": "PUT Tắt Product (is_active=false)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{admin_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/products/7", "host": ["{{base_url}}"], "path": ["api","products","7"]},
+            "body": {"mode": "raw", "raw": "{\n  \"product_code\": \"OLD001\",\n  \"product_name\": \"SP đã ngừng\",\n  \"product_type\": \"Cũ\",\n  \"is_active\": false\n}"}
+          }
+        },
+        {
+          "name": "POST Tạo Warehouse (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{admin_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/warehouses", "host": ["{{base_url}}"], "path": ["api","warehouses"]},
+            "body": {"mode": "raw", "raw": "{\n  \"warehouse_name\": \"Kho Bình Thạnh\",\n  \"warehouse_location\": \"100 Điện Biên Phủ, Bình Thạnh, TP.HCM\",\n  \"is_active\": true\n}"}
+          }
+        },
+        {
+          "name": "GET /api/warehouses (chỉ trả is_active=True)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{staff_token}}"}],
+            "url": {"raw": "{{base_url}}/api/warehouses", "host": ["{{base_url}}"], "path": ["api","warehouses"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Nhóm 2 - Vận hành kho",
+      "item": [
+        {
+          "name": "1. POST Tạo phiếu NHẬP (Staff)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{staff_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/receipts", "host": ["{{base_url}}"], "path": ["api","receipts"]},
+            "body": {"mode": "raw", "raw": "{\n  \"warehouse\": 1,\n  \"receipt_type\": \"IMPORT\"\n}"},
+            "description": "Tạo phiếu IMPORT, status mặc định PENDING. Bị chặn nếu warehouse có is_active=False."
+          }
+        },
+        {
+          "name": "2. POST Thêm chi tiết (nhiều dòng)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{staff_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/receipts/4/details", "host": ["{{base_url}}"], "path": ["api","receipts","4","details"]},
+            "body": {"mode": "raw", "raw": "[\n  {\"product\": 1, \"quantity\": 20},\n  {\"product\": 2, \"quantity\": 50}\n]"},
+            "description": "Đổi 4 thành ID phiếu thực tế. Bị chặn nếu product có is_active=False."
+          }
+        },
+        {
+          "name": "3. PUT Duyệt phiếu APPROVED (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{admin_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/receipts/4/status", "host": ["{{base_url}}"], "path": ["api","receipts","4","status"]},
+            "body": {"mode": "raw", "raw": "{\n  \"receipt_status\": \"APPROVED\"\n}"},
+            "description": "IMPORT: cộng vào Inventory. EXPORT: kiểm tra tồn đủ không, đủ thì trừ."
+          }
+        },
+        {
+          "name": "4. POST Tạo phiếu XUẤT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{staff_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/receipts", "host": ["{{base_url}}"], "path": ["api","receipts"]},
+            "body": {"mode": "raw", "raw": "{\n  \"warehouse\": 1,\n  \"receipt_type\": \"EXPORT\"\n}"}
+          }
+        },
+        {
+          "name": "5. POST Chi tiết phiếu XUẤT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{staff_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/receipts/5/details", "host": ["{{base_url}}"], "path": ["api","receipts","5","details"]},
+            "body": {"mode": "raw", "raw": "[{\"product\": 1, \"quantity\": 10}]"}
+          }
+        },
+        {
+          "name": "6. PUT Duyệt EXPORT (check tồn kho)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{admin_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/receipts/5/status", "host": ["{{base_url}}"], "path": ["api","receipts","5","status"]},
+            "body": {"mode": "raw", "raw": "{\n  \"receipt_status\": \"APPROVED\"\n}"}
+          }
+        },
+        {
+          "name": "7. PUT Hủy phiếu (không đụng tồn)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Token {{admin_token}}"}
+            ],
+            "url": {"raw": "{{base_url}}/api/receipts/6/status", "host": ["{{base_url}}"], "path": ["api","receipts","6","status"]},
+            "body": {"mode": "raw", "raw": "{\n  \"receipt_status\": \"CANCELLED\"\n}"}
+          }
+        },
+        {
+          "name": "8. GET Chi tiết phiếu",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{staff_token}}"}],
+            "url": {"raw": "{{base_url}}/api/receipts/1", "host": ["{{base_url}}"], "path": ["api","receipts","1"]}
+          }
+        },
+        {
+          "name": "9. DELETE Phiếu PENDING (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Token {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/api/receipts/3", "host": ["{{base_url}}"], "path": ["api","receipts","3"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Nhóm 3 - Báo cáo",
+      "item": [
+        {
+          "name": "GET Tồn kho 1 kho",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{staff_token}}"}],
+            "url": {"raw": "{{base_url}}/api/warehouses/1/inventory", "host": ["{{base_url}}"], "path": ["api","warehouses","1","inventory"]}
+          }
+        },
+        {
+          "name": "GET Low-stock mặc định <10",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{staff_token}}"}],
+            "url": {"raw": "{{base_url}}/api/reports/low-stock", "host": ["{{base_url}}"], "path": ["api","reports","low-stock"]}
+          }
+        },
+        {
+          "name": "GET Low-stock với threshold tùy chọn",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{staff_token}}"}],
+            "url": {"raw": "{{base_url}}/api/reports/low-stock?threshold=50", "host": ["{{base_url}}"], "path": ["api","reports","low-stock"], "query": [{"key":"threshold","value":"50"}]}
+          }
+        },
+        {
+          "name": "GET Low-stock lọc theo kho",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Token {{staff_token}}"}],
+            "url": {"raw": "{{base_url}}/api/reports/low-stock?threshold=30&warehouse_id=1", "host": ["{{base_url}}"], "path": ["api","reports","low-stock"], "query": [{"key":"threshold","value":"30"},{"key":"warehouse_id","value":"1"}]}
+          }
+        }
+      ]
+    }
+  ]
+}

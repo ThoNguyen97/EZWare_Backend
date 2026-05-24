@@ -1,0 +1,8 @@
+Django==5.0.6
+djangorestframework==3.15.1
+drf-yasg==1.21.7
+# pandas + openpyxl: để chạy lệnh import_excel
+pandas==2.2.2
+openpyxl==3.1.2
+gunicorn==23.0.0
+setuptools

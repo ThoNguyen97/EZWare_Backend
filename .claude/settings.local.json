@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"D:\\\\Personnal\\\\LienThong\\\\KyThuatPyThon\\\\DoAn\\\\EZWare_Backend\\\\ezware\")",
+      "Bash(pandoc --version)"
+    ]
+  }
+}

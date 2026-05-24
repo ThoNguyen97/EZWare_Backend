@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /B)",
+      "Bash(python -c 'import ast; import os *)",
+      "Bash(python -c 'import ast, os *)"
+    ]
+  }
+}
