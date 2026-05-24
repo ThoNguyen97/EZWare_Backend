@@ -4,6 +4,9 @@
 # trên Render free tier (512 MB RAM build).
 # Khi cần chạy import_excel ở máy local thì: pip install -r requirements-dev.txt
 
+# setuptools BẮT BUỘC giữ ở đây vì drf-yasg 1.21.7 còn import pkg_resources;
+# Python 3.12 trở đi không còn bundle setuptools trong venv mặc định nữa.
+setuptools
 Django==5.0.6
 djangorestframework==3.15.1
 drf-yasg==1.21.7
