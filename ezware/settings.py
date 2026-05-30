@@ -12,7 +12,11 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-ezware-python'
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
-
+CSRF_TRUSTED_ORIGINS = [
+    'https://ezware-backend.onrender.com',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -93,9 +97,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 REST_FRAMEWORK = {
+    # Chỉ dùng TokenAuthentication cho API. KHÔNG bật SessionAuthentication
+    # vì nó kích hoạt CSRF check khi browser có sẵn session cookie của Django
+    # admin → mọi POST/PUT/DELETE (kể cả /login) sẽ fail với "CSRF token missing".
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
