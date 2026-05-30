@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dir /B)",
       "Bash(python -c 'import ast; import os *)",
-      "Bash(python -c 'import ast, os *)"
+      "Bash(python -c 'import ast, os *)",
+      "Bash(python -c \"import codecs; print\\(open\\('requirements.txt','rb'\\).read\\(\\)[:50]\\)\")",
+      "Bash(python -c \"print\\(open\\('requirements.txt','r',encoding='utf-8'\\).read\\(\\)\\)\")"
     ]
   }
 }
