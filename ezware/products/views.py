@@ -25,11 +25,17 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     http_method_names = ['get', 'put', 'delete']
 
     def destroy(self, request, *args, **kwargs):
+        product = self.get_object()
+        pid, pcode = product.product_id, product.product_code
         try:
-            return super().destroy(request, *args, **kwargs)
+            product.delete()
         except ProtectedError:
             return Response(
                 {'detail': 'Sản phẩm đã được dùng trong phiếu, không thể xóa. '
                            'Hãy đặt is_active=False để tạm ngưng.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        return Response(
+            {'detail': f'Đã xóa sản phẩm id={pid} ({pcode}) thành công'},
+            status=status.HTTP_200_OK,
+        )

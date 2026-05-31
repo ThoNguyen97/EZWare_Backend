@@ -26,14 +26,20 @@ class WarehouseDetailView(generics.RetrieveUpdateDestroyAPIView):
     http_method_names = ['get', 'put', 'delete']
 
     def destroy(self, request, *args, **kwargs):
+        kho = self.get_object()
+        wid, wcode = kho.warehouse_id, kho.warehouse_code
         try:
-            return super().destroy(request, *args, **kwargs)
+            kho.delete()
         except ProtectedError:
             return Response(
                 {'detail': 'Kho đang có phiếu nhập/xuất, không thể xóa. '
                            'Hãy đặt is_active=False để tạm ngưng.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        return Response(
+            {'detail': f'Đã xóa kho id={wid} ({wcode}) thành công'},
+            status=status.HTTP_200_OK,
+        )
 
 
 class WarehouseInventoryView(APIView):

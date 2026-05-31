@@ -8,7 +8,7 @@ Sheet Inventory được tính lại tự động từ các phiếu APPROVED.
 Lệnh này KHÔNG tạo tài khoản người dùng.
 """
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import transaction, connection
 from django.utils import timezone
 
 from ezware.products.models import Product
@@ -154,5 +154,27 @@ class Command(BaseCommand):
 
         inv_count = Inventory.objects.count()
         self.stdout.write(self.style.SUCCESS(f"  Inventory: đã tạo {inv_count} dòng"))
+
+        # Reset sequence cho PostgreSQL. Khi chèn dữ liệu với khóa chính tường
+        # minh, Postgres không tự tăng sequence -> lần thêm bản ghi mới sau đó
+        # (vd qua Django admin) sẽ trùng ID. Đồng bộ lại sequence về MAX(id).
+        # SQLite không cần bước này nên bỏ qua.
+        if connection.vendor == 'postgresql':
+            self.stdout.write(self.style.NOTICE("  Đồng bộ lại sequence PostgreSQL..."))
+            with connection.cursor() as cur:
+                for table, col in [
+                    ('users', 'user_id'),
+                    ('products', 'product_id'),
+                    ('warehouses', 'warehouse_id'),
+                    ('inventory_receipts', 'receipt_id'),
+                    ('receipt_details', 'detail_id'),
+                    ('inventory', 'id'),
+                ]:
+                    cur.execute(
+                        "SELECT setval(pg_get_serial_sequence(%s, %s), "
+                        "COALESCE((SELECT MAX({col}) FROM {table}), 1))".format(col=col, table=table),
+                        [table, col],
+                    )
+            self.stdout.write(self.style.SUCCESS("  Đã đồng bộ sequence"))
 
         self.stdout.write(self.style.SUCCESS("\nIMPORT THÀNH CÔNG"))

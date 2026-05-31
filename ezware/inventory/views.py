@@ -55,7 +55,12 @@ class ReceiptDetailGetView(generics.RetrieveDestroyAPIView):
                 {'detail': f'Phiếu ở trạng thái {phieu.receipt_status}, không xóa được'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        return super().destroy(request, *args, **kwargs)
+        receipt_id = phieu.receipt_id
+        phieu.delete()
+        return Response(
+            {'detail': f'Đã xóa phiếu id={receipt_id} thành công'},
+            status=status.HTTP_200_OK,
+        )
 
 
 class ReceiptDetailAddView(APIView):
