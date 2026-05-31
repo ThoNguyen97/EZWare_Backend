@@ -1,9 +1,11 @@
-# Vai trò user
-ROLE_ADMIN = 'admin'
-ROLE_STAFF = 'staff'
+# Vai trò user — 3 cấp phản ánh tổ chức quản lý kho thực tế
+ROLE_ADMIN = 'admin'        # Quản trị hệ thống — quản lý tài khoản (qua Django admin)
+ROLE_MANAGER = 'manager'    # Trưởng kho — mọi nghiệp vụ kho, không quản tài khoản
+ROLE_STAFF = 'staff'        # Nhân viên kho — ghi phiếu PENDING, không duyệt
 
 ROLE_CHOICES = [
     (ROLE_ADMIN, 'Quản trị viên'),
+    (ROLE_MANAGER, 'Trưởng kho'),
     (ROLE_STAFF, 'Nhân viên kho'),
 ]
 

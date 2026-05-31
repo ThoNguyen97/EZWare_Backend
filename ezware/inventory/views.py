@@ -19,7 +19,7 @@ from ezware.core.constants import (
     RECEIPT_STATUS_APPROVED,
     RECEIPT_STATUS_CANCELLED,
 )
-from ezware.accounts.permissions import IsAdminRole
+from ezware.accounts.permissions import IsAdminOrManager
 
 
 class ReceiptListCreateView(generics.ListCreateAPIView):
@@ -44,15 +44,16 @@ class ReceiptListCreateView(generics.ListCreateAPIView):
 
 
 class ReceiptDetailGetView(generics.RetrieveDestroyAPIView):
-    """Xem chi tiết 1 phiếu, hoặc xóa phiếu (chỉ khi còn PENDING)"""
+    """Xem chi tiết 1 phiếu, hoặc xóa phiếu (chỉ khi còn PENDING).
+
+    Quyền xóa phiếu PENDING: mở rộng cho mọi user đã đăng nhập (Staff cũng được)
+    — phục vụ trường hợp nhân viên kho lỡ tạo phiếu nhầm cần huỷ trước khi
+    duyệt. Phiếu đã APPROVED/CANCELLED thì không xoá được nữa (đã có check
+    trong destroy).
+    """
     queryset = InventoryReceipt.objects.select_related('warehouse').prefetch_related('details')
     serializer_class = InventoryReceiptSerializer
     lookup_field = 'receipt_id'
-
-    def get_permissions(self):
-        if self.request.method == 'DELETE':
-            return [IsAdminRole()]
-        return super().get_permissions()
 
     def destroy(self, request, *args, **kwargs):
         phieu = self.get_object()
@@ -127,11 +128,11 @@ class ReceiptDetailAddView(APIView):
 
 class ReceiptUpdateStatusView(APIView):
     """
-    Duyệt hoặc hủy phiếu (chỉ Admin).
+    Duyệt hoặc hủy phiếu — Admin hoặc Trưởng kho (Manager).
     APPROVED: cộng/trừ tồn kho trong bảng Inventory.
     CANCELLED: chỉ đổi trạng thái, không đụng tồn.
     """
-    permission_classes = [IsAdminRole]
+    permission_classes = [IsAdminOrManager]
 
     @swagger_auto_schema(request_body=UpdateStatusSerializer)
     def put(self, request, receipt_id):

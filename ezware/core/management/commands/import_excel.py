@@ -6,14 +6,18 @@ Lệnh import dữ liệu mẫu từ Excel vào DB.
 Cần: pip install pandas openpyxl
 Sheet Inventory được tính lại tự động từ các phiếu APPROVED, không cần điền tay.
 
---reset: xóa toàn bộ data hiện có trong 6 bảng trước khi import, để chạy
-         lại nhiều lần không bị crash do unique constraint (username, product_code…).
+Lưu ý: Lệnh này KHÔNG tạo tài khoản người dùng nào. Tất cả tài khoản (admin /
+manager / staff) phải được tạo thủ công qua `python manage.py createsuperuser`
+hoặc qua giao diện Django admin (/admin/) sau khi đã có superadmin đầu tiên.
+Sheet 01_Users trong Excel (nếu có) sẽ bị bỏ qua.
+
+--reset: xóa toàn bộ data nghiệp vụ kho trước khi import (products, warehouses,
+         receipts, details, inventory). Các user superadmin được giữ nguyên.
 """
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from ezware.accounts.models import User
 from ezware.products.models import Product
 from ezware.warehouses.models import Warehouse
 from ezware.inventory.models import InventoryReceipt, ReceiptDetail, Inventory
@@ -56,36 +60,21 @@ class Command(BaseCommand):
         self.stdout.write(self.style.NOTICE(f"Đang đọc file: {path}"))
 
         # Xóa data cũ nếu được yêu cầu. Thứ tự xóa quan trọng do ràng buộc FK:
-        # Inventory -> ReceiptDetail -> InventoryReceipt -> Warehouse/Product/User
+        # Inventory -> ReceiptDetail -> InventoryReceipt -> Warehouse/Product
+        # TÀI KHOẢN người dùng KHÔNG bị động đến — do user tự quản lý qua
+        # createsuperuser + Django admin, không thuộc phạm vi lệnh import_excel.
         if opts['reset']:
-            self.stdout.write(self.style.WARNING("--reset: đang xóa data cũ..."))
+            self.stdout.write(self.style.WARNING(
+                "--reset: đang xóa data nghiệp vụ kho cũ (giữ nguyên user)..."))
             Inventory.objects.all().delete()
             ReceiptDetail.objects.all().delete()
             InventoryReceipt.objects.all().delete()
             Warehouse.objects.all().delete()
             Product.objects.all().delete()
-            # Không xóa superuser (is_superuser=True) để tránh mất tài khoản
-            # đang dùng để login admin.
-            User.objects.filter(is_superuser=False).delete()
-            self.stdout.write(self.style.SUCCESS("  Đã xóa data cũ"))
+            self.stdout.write(self.style.SUCCESS("  Đã xóa data nghiệp vụ"))
 
-        # Users
-        df = pd.read_excel(path, sheet_name='01_Users')
-        count = 0
-        for _, r in df.iterrows():
-            u = User(
-                user_id=int(r['user_id']),
-                username=str(r['username']).strip(),
-                full_name=str(get_val(r, 'full_name', '')).strip(),
-                email=str(get_val(r, 'email', '')).strip(),
-                phone=str(get_val(r, 'phone', '')).strip(),
-                user_role=str(r['user_role']).strip().lower(),
-                is_active=bool(get_val(r, 'is_active', True)),
-            )
-            u.set_password(str(r['password']))
-            u.save()
-            count += 1
-        self.stdout.write(self.style.SUCCESS(f"  Users: đã nạp {count}"))
+        # CHÚ Ý: KHÔNG đọc sheet '01_Users' nữa — tài khoản do người vận hành
+        # tự tạo qua `python manage.py createsuperuser` + Django admin.
 
         # Products
         df = pd.read_excel(path, sheet_name='02_Products')
@@ -106,8 +95,16 @@ class Command(BaseCommand):
         df = pd.read_excel(path, sheet_name='03_Warehouses')
         count = 0
         for _, r in df.iterrows():
+            # warehouse_code có thể chưa tồn tại trong Excel cũ — fallback sinh
+            # mã từ warehouse_id để tránh fail. User nên cập nhật Excel với cột
+            # warehouse_code do người dùng tự đặt.
+            wh_code = str(get_val(r, 'warehouse_code', '')).strip()
+            if not wh_code:
+                wh_code = f'WH{int(r["warehouse_id"]):03d}'
+
             Warehouse.objects.create(
                 warehouse_id=int(r['warehouse_id']),
+                warehouse_code=wh_code,
                 warehouse_name=str(r['warehouse_name']).strip(),
                 warehouse_location=str(get_val(r, 'warehouse_location', '')).strip(),
                 is_active=bool(get_val(r, 'is_active', True)),

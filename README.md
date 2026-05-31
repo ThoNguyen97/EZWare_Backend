@@ -14,9 +14,9 @@ Hệ thống quản lý kho (backend API).
 
 6 bảng:
 
-- `users` (user_id, username, password, full_name, email, phone, user_role, is_active) — user_role: admin/staff
+- `users` (user_id, username, password, full_name, email, phone, user_role, is_active, is_staff, last_login) — user_role: **admin / manager / staff**
 - `products` (product_id, product_code, product_name, product_type, product_description, is_active) — không lưu đơn giá, product_type lưu text
-- `warehouses` (warehouse_id, warehouse_name, warehouse_location, is_active)
+- `warehouses` (warehouse_id, warehouse_code, warehouse_name, warehouse_location, is_active) — warehouse_code UNIQUE, do người dùng tự đặt
 - `inventory_receipts` (receipt_id, warehouse_id, receipt_type, receipt_status, created_at) — type: IMPORT/EXPORT, status: PENDING/APPROVED/CANCELLED
 - `receipt_details` (detail_id, receipt_id, product_id, quantity) — không lưu đơn giá
 - `inventory` — UNIQUE(warehouse_id, product_id), quantity. Tồn kho thực tế, cập nhật khi phiếu APPROVED. (Bảng có cột `id` tự sinh; ràng buộc duy nhất trên cặp warehouse_id + product_id để mỗi SP chỉ có 1 dòng tồn mỗi kho.)
@@ -53,14 +53,15 @@ pip install -r requirements-dev.txt
 python manage.py makemigrations accounts products warehouses inventory
 python manage.py migrate
 
-# Cách 1: import dữ liệu mẫu từ file Excel kèm theo
+# Tạo tài khoản superadmin đầu tiên (gõ username/password tuỳ ý khi được hỏi)
+python manage.py createsuperuser
+
+# (Tùy chọn) Nạp dữ liệu mẫu nghiệp vụ kho: products, warehouses, phiếu, tồn kho
+# Lệnh này KHÔNG tạo tài khoản — chỉ data nghiệp vụ.
 python manage.py import_excel EZWare_DuLieuMau.xlsx
 
-# Chạy lại từ đầu (xóa data cũ rồi import lại):
+# Chạy lại từ đầu nếu cần (giữ nguyên user superadmin):
 python manage.py import_excel EZWare_DuLieuMau.xlsx --reset
-
-# Cách 2: tự tạo admin để bắt đầu trắng
-python manage.py shell -c "from ezware.accounts.models import User; User.objects.create_user(username='admin01', password='123456', user_role='admin', full_name='Quản trị viên')"
 
 python manage.py runserver
 ```
@@ -81,9 +82,16 @@ python manage.py runserver
 
 > Lưu ý: SQLite trên Render free tier sẽ reset mỗi lần deploy vì filesystem ephemeral. Cho đồ án demo dùng được; production cần đổi sang Postgres managed của Render.
 
-Tài khoản mẫu (sau khi import Excel):
-- admin01 / 123456 (admin)
-- nv01, nv02 / 123456 (staff)
+## Quản lý tài khoản
+
+Hệ thống KHÔNG seed sẵn bất kỳ tài khoản nào. Quy trình tạo tài khoản:
+
+1. Tạo superadmin duy nhất bằng `python manage.py createsuperuser` (Django built-in).
+2. Login `/admin/` với superadmin đó.
+3. Vào mục **Users → Add User** trên Django admin để tạo các tài khoản còn lại,
+   chọn `user_role` phù hợp: `admin` / `manager` / `staff`.
+4. Cột `is_staff` (Django default) được tự đồng bộ với `user_role` qua
+   `User.save()` — chỉ user role admin mới được phép vào lại `/admin/`.
 
 ## URL
 
@@ -106,16 +114,17 @@ Auth:
 - POST /api/auth/logout
 - GET, PUT /api/auth/me
 
-Dữ liệu nền (GET cho staff + admin, POST/PUT/DELETE chỉ admin):
+Dữ liệu nền (GET cho mọi user đăng nhập; POST/PUT/DELETE: Admin + Manager):
 - GET, POST /api/products — GET chỉ trả is_active=True
 - GET, PUT, DELETE /api/products/<id>
 - GET, POST /api/warehouses — GET chỉ trả is_active=True
 - GET, PUT, DELETE /api/warehouses/<id>
 
 Vận hành kho:
-- POST /api/receipts — tạo phiếu, từ chối nếu kho is_active=False
-- POST /api/receipts/<id>/details — thêm chi tiết, từ chối nếu SP is_active=False
-- PUT /api/receipts/<id>/status — duyệt/hủy phiếu, chỉ admin
+- POST /api/receipts — tạo phiếu (mọi user đăng nhập), từ chối nếu kho is_active=False
+- POST /api/receipts/<id>/details — thêm chi tiết (mọi user đăng nhập), từ chối nếu SP is_active=False
+- DELETE /api/receipts/<id> — xóa phiếu PENDING (mọi user đăng nhập)
+- PUT /api/receipts/<id>/status — duyệt/hủy phiếu (Admin hoặc Manager)
 
 Báo cáo:
 - GET /api/warehouses/<id>/inventory — tồn kho 1 kho
