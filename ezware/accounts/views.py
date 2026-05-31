@@ -13,7 +13,7 @@ from .serializers import (
 
 
 class RegisterView(APIView):
-    """Đăng ký tài khoản mới, trả luôn token để dùng được ngay"""
+    """POST /api/auth/register - đăng ký tài khoản, trả về token."""
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(request_body=RegisterSerializer)
@@ -32,7 +32,7 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
-    """Đăng nhập bằng username + password, trả về token"""
+    """POST /api/auth/login - đăng nhập bằng username + password, trả về token."""
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(request_body=LoginSerializer)
@@ -51,13 +51,7 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
-    """Đăng xuất: chỉ xóa token đang dùng cho request hiện tại.
-
-    Trước đây xóa tất cả token của user — gây kick user khỏi mọi thiết bị.
-    Giờ chỉ xóa token đính kèm request (request.auth) để các phiên khác
-    của cùng user không bị ảnh hưởng. DRF mặc định 1 user 1 token nên
-    hành vi vẫn tương đương với trường hợp single-device.
-    """
+    """Đăng xuất: chỉ xóa token đang dùng cho request hiện tại."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -67,7 +61,7 @@ class LogoutView(APIView):
 
 
 class MeView(generics.RetrieveUpdateAPIView):
-    """Xem hoặc cập nhật thông tin của chính user đang đăng nhập"""
+    """GET/PUT /api/auth/me - xem hoặc cập nhật profile của user đang login."""
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'put']

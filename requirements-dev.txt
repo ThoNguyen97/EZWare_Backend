@@ -1,7 +1,3 @@
-# Local development dependencies - includes pandas / openpyxl to run
-# `python manage.py import_excel EZWare_DuLieuMau.xlsx --reset` to load sample data.
-# Render DOES NOT read this file - it only reads requirements.txt for production.
-
 -r requirements.txt
 pandas==2.2.2
 numpy<2.0

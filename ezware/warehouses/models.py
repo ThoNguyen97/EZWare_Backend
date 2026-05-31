@@ -3,7 +3,6 @@ from django.db import models
 
 class Warehouse(models.Model):
     warehouse_id = models.AutoField(primary_key=True)
-    # Mã kho — do người dùng tự đặt, không cho trùng. Tương tự product_code.
     warehouse_code = models.CharField(max_length=50, unique=True)
     warehouse_name = models.CharField(max_length=200, unique=True)
     warehouse_location = models.CharField(max_length=500, blank=True, default='')

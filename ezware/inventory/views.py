@@ -23,7 +23,7 @@ from ezware.accounts.permissions import IsAdminOrManager
 
 
 class ReceiptListCreateView(generics.ListCreateAPIView):
-    """GET: danh sách phiếu. POST: tạo phiếu nhập/xuất mới ở trạng thái PENDING."""
+    """GET: danh sách phiếu. POST: tạo phiếu mới ở trạng thái PENDING."""
     queryset = InventoryReceipt.objects.select_related('warehouse').prefetch_related('details')
     serializer_class = InventoryReceiptSerializer
 
@@ -31,7 +31,6 @@ class ReceiptListCreateView(generics.ListCreateAPIView):
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
-        # Không cho phép tạo phiếu cho kho đã ngưng hoạt động
         warehouse_obj = ser.validated_data.get('warehouse')
         if not warehouse_obj.is_active:
             return Response(
@@ -44,13 +43,7 @@ class ReceiptListCreateView(generics.ListCreateAPIView):
 
 
 class ReceiptDetailGetView(generics.RetrieveDestroyAPIView):
-    """Xem chi tiết 1 phiếu, hoặc xóa phiếu (chỉ khi còn PENDING).
-
-    Quyền xóa phiếu PENDING: mở rộng cho mọi user đã đăng nhập (Staff cũng được)
-    — phục vụ trường hợp nhân viên kho lỡ tạo phiếu nhầm cần huỷ trước khi
-    duyệt. Phiếu đã APPROVED/CANCELLED thì không xoá được nữa (đã có check
-    trong destroy).
-    """
+    """Xem chi tiết phiếu hoặc xóa phiếu (chỉ khi còn PENDING)."""
     queryset = InventoryReceipt.objects.select_related('warehouse').prefetch_related('details')
     serializer_class = InventoryReceiptSerializer
     lookup_field = 'receipt_id'
@@ -66,7 +59,7 @@ class ReceiptDetailGetView(generics.RetrieveDestroyAPIView):
 
 
 class ReceiptDetailAddView(APIView):
-    """Thêm chi tiết vào một phiếu đang ở trạng thái PENDING"""
+    """Thêm chi tiết vào phiếu PENDING."""
 
     @swagger_auto_schema(request_body=ReceiptDetailSerializer(many=True))
     def post(self, request, receipt_id):
@@ -84,7 +77,6 @@ class ReceiptDetailAddView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # nhận cả 1 dict lẫn list, gửi kiểu nào cũng được
         data = request.data
         if isinstance(data, dict):
             list_input = [data]
@@ -101,7 +93,6 @@ class ReceiptDetailAddView(APIView):
                 )
             product_ids.append(pid)
 
-        # Lọc ra các sản phẩm đã ngưng để báo lỗi
         sp_da_tat = list(
             Product.objects.filter(
                 product_id__in=product_ids, is_active=False,
@@ -113,14 +104,10 @@ class ReceiptDetailAddView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Không cần gán item['receipt'] nữa: serializer đã đặt receipt read_only
-        # → truyền phiếu qua serializer.save(receipt=phieu) phía dưới.
         ser = ReceiptDetailSerializer(data=list_input, many=True)
         if not ser.is_valid():
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Bọc atomic để hoặc tất cả dòng được lưu, hoặc không có dòng nào
-        # (tránh trường hợp dòng 3/5 fail → phiếu có chi tiết một nửa).
         with transaction.atomic():
             ser.save(receipt=phieu)
         return Response(ser.data, status=status.HTTP_201_CREATED)
@@ -128,9 +115,8 @@ class ReceiptDetailAddView(APIView):
 
 class ReceiptUpdateStatusView(APIView):
     """
-    Duyệt hoặc hủy phiếu — Admin hoặc Trưởng kho (Manager).
-    APPROVED: cộng/trừ tồn kho trong bảng Inventory.
-    CANCELLED: chỉ đổi trạng thái, không đụng tồn.
+    Duyệt hoặc hủy phiếu (Admin / Manager).
+    APPROVED: cộng/trừ tồn kho. CANCELLED: chỉ đổi trạng thái.
     """
     permission_classes = [IsAdminOrManager]
 
@@ -161,7 +147,6 @@ class ReceiptUpdateStatusView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Hủy phiếu: chỉ đổi trạng thái, không đụng tồn kho
         if new_status == RECEIPT_STATUS_CANCELLED:
             phieu.receipt_status = RECEIPT_STATUS_CANCELLED
             phieu.save(update_fields=['receipt_status'])
@@ -170,7 +155,6 @@ class ReceiptUpdateStatusView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        # Duyệt phiếu
         chi_tiet_list = list(phieu.details.select_related('product').all())
         if not chi_tiet_list:
             return Response(
@@ -178,7 +162,7 @@ class ReceiptUpdateStatusView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Phiếu xuất: check tồn trước, tránh để DB bị trừ âm
+        # Phiếu xuất: kiểm tra tồn đủ trước khi trừ
         if phieu.receipt_type == RECEIPT_TYPE_EXPORT:
             for ct in chi_tiet_list:
                 ton = Inventory.objects.filter(
@@ -195,7 +179,6 @@ class ReceiptUpdateStatusView(APIView):
                             f'Tồn hiện tại: {ton_hien_tai}, cần xuất: {ct.quantity}'
                         )
                     }, status=status.HTTP_400_BAD_REQUEST)
-        # TODO: gộp 2 vòng for này lại nếu sau này có thời gian
 
         with transaction.atomic():
             for ct in chi_tiet_list:

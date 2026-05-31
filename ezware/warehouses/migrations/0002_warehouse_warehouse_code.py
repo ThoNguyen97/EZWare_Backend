@@ -1,16 +1,3 @@
-"""
-Migration thêm cột warehouse_code (UNIQUE, NOT NULL).
-
-Vì DB có thể đang chứa warehouse rows cũ chưa có code, migration thực hiện
-3 bước an toàn:
-  1. AddField nullable (không UNIQUE) -> SQLite cho phép thêm cột vào table
-     có data sẵn.
-  2. RunPython: backfill mã 'WH001', 'WH002', ... cho các row đang null.
-  3. AlterField: thắt chặt thành unique=True, null=False.
-
-Không reset DB cũng chạy được; chạy fresh DB cũng OK (RunPython skip vì không
-có row nào).
-"""
 from django.db import migrations, models
 
 
@@ -22,7 +9,6 @@ def backfill_warehouse_code(apps, schema_editor):
 
 
 def reverse_noop(apps, schema_editor):
-    # Không cần làm gì khi rollback — DROP COLUMN ở AlterField đảo ngược lại.
     pass
 
 

@@ -9,17 +9,16 @@ from ezware.accounts.permissions import IsAdminOrReadOnly
 
 
 class WarehouseListCreateView(generics.ListCreateAPIView):
-    """GET: danh sách kho đang dùng. POST: tạo kho mới (chỉ Admin)."""
+    """GET: danh sách kho. POST: tạo kho mới."""
     serializer_class = WarehouseSerializer
     permission_classes = [IsAdminOrReadOnly]
 
     def get_queryset(self):
-        # Chỉ lấy các kho đang hoạt động
         return Warehouse.objects.filter(is_active=True).order_by('warehouse_id')
 
 
 class WarehouseDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Xem / sửa / xóa 1 kho theo warehouse_id"""
+    """Xem / sửa / xóa kho theo warehouse_id."""
     queryset = Warehouse.objects.all()
     serializer_class = WarehouseSerializer
     permission_classes = [IsAdminOrReadOnly]
@@ -27,8 +26,6 @@ class WarehouseDetailView(generics.RetrieveUpdateDestroyAPIView):
     http_method_names = ['get', 'put', 'delete']
 
     def destroy(self, request, *args, **kwargs):
-        # Kho đang có phiếu (FK on_delete=PROTECT) => bắt ProtectedError
-        # để trả 400 cho FE, thay vì để Django tự ra 500.
         try:
             return super().destroy(request, *args, **kwargs)
         except ProtectedError:
@@ -40,7 +37,7 @@ class WarehouseDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class WarehouseInventoryView(APIView):
-    """Liệt kê tồn kho thực tế của 1 kho cụ thể"""
+    """Liệt kê tồn kho thực tế của một kho."""
 
     def get(self, request, warehouse_id):
         try:
@@ -51,7 +48,6 @@ class WarehouseInventoryView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # import ở đây để né circular import giữa 2 app
         from ezware.inventory.models import Inventory
         from ezware.inventory.serializers import InventorySerializer
 
@@ -62,6 +58,7 @@ class WarehouseInventoryView(APIView):
         return Response({
             'warehouse': {
                 'warehouse_id': kho.warehouse_id,
+                'warehouse_code': kho.warehouse_code,
                 'warehouse_name': kho.warehouse_name,
                 'warehouse_location': kho.warehouse_location,
                 'is_active': kho.is_active,

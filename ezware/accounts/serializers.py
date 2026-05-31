@@ -5,14 +5,7 @@ from ezware.core.constants import ROLE_STAFF
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """Serializer cho đăng ký công khai.
-
-    KHÔNG nhận user_role từ client để chống leo thang quyền:
-    nếu cho phép thì bất kỳ ai cũng có thể POST {"user_role":"admin"}
-    và trở thành admin ngay khi đăng ký. User mới luôn được tạo với
-    role STAFF; muốn cấp role admin thì phải để admin hiện hữu tạo
-    qua endpoint quản lý user.
-    """
+    """Đăng ký tài khoản công khai. Mọi user đăng ký đều có role staff."""
     password = serializers.CharField(write_only=True, min_length=6)
 
     class Meta:
@@ -26,14 +19,14 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop('password')
         user = User(**validated_data)
-        user.user_role = ROLE_STAFF  # Force STAFF cho mọi user đăng ký công khai
+        user.user_role = ROLE_STAFF
         user.set_password(password)
         user.save()
         return user
 
 
 class LoginSerializer(serializers.Serializer):
-    """Serializer cho đăng nhập, validate luôn username/password và cờ is_active"""
+    """Đăng nhập bằng username + password."""
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
@@ -52,7 +45,6 @@ class LoginSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Trả thông tin profile user (đã ẩn password)"""
     class Meta:
         model = User
         fields = ['user_id', 'username', 'email', 'full_name',

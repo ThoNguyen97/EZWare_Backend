@@ -3,16 +3,9 @@ Lệnh import dữ liệu mẫu từ Excel vào DB.
     python manage.py import_excel EZWare_DuLieuMau.xlsx
     python manage.py import_excel EZWare_DuLieuMau.xlsx --reset
 
-Cần: pip install pandas openpyxl
-Sheet Inventory được tính lại tự động từ các phiếu APPROVED, không cần điền tay.
-
-Lưu ý: Lệnh này KHÔNG tạo tài khoản người dùng nào. Tất cả tài khoản (admin /
-manager / staff) phải được tạo thủ công qua `python manage.py createsuperuser`
-hoặc qua giao diện Django admin (/admin/) sau khi đã có superadmin đầu tiên.
-Sheet 01_Users trong Excel (nếu có) sẽ bị bỏ qua.
-
---reset: xóa toàn bộ data nghiệp vụ kho trước khi import (products, warehouses,
-         receipts, details, inventory). Các user superadmin được giữ nguyên.
+Cần: pip install pandas openpyxl (xem requirements-dev.txt).
+Sheet Inventory được tính lại tự động từ các phiếu APPROVED.
+Lệnh này KHÔNG tạo tài khoản người dùng.
 """
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -39,14 +32,14 @@ def get_val(row, key, default=''):
 
 
 class Command(BaseCommand):
-    help = 'Import dữ liệu từ Excel vào DB'
+    help = 'Import dữ liệu nghiệp vụ kho từ Excel vào DB'
 
     def add_arguments(self, parser):
         parser.add_argument('excel_path', type=str)
         parser.add_argument(
             '--reset',
             action='store_true',
-            help='Xóa data cũ trong 6 bảng trước khi import (chạy lại nhiều lần).',
+            help='Xóa data nghiệp vụ kho cũ trước khi import.',
         )
 
     @transaction.atomic
@@ -59,22 +52,14 @@ class Command(BaseCommand):
         path = opts['excel_path']
         self.stdout.write(self.style.NOTICE(f"Đang đọc file: {path}"))
 
-        # Xóa data cũ nếu được yêu cầu. Thứ tự xóa quan trọng do ràng buộc FK:
-        # Inventory -> ReceiptDetail -> InventoryReceipt -> Warehouse/Product
-        # TÀI KHOẢN người dùng KHÔNG bị động đến — do user tự quản lý qua
-        # createsuperuser + Django admin, không thuộc phạm vi lệnh import_excel.
         if opts['reset']:
-            self.stdout.write(self.style.WARNING(
-                "--reset: đang xóa data nghiệp vụ kho cũ (giữ nguyên user)..."))
+            self.stdout.write(self.style.WARNING("--reset: đang xóa data cũ..."))
             Inventory.objects.all().delete()
             ReceiptDetail.objects.all().delete()
             InventoryReceipt.objects.all().delete()
             Warehouse.objects.all().delete()
             Product.objects.all().delete()
             self.stdout.write(self.style.SUCCESS("  Đã xóa data nghiệp vụ"))
-
-        # CHÚ Ý: KHÔNG đọc sheet '01_Users' nữa — tài khoản do người vận hành
-        # tự tạo qua `python manage.py createsuperuser` + Django admin.
 
         # Products
         df = pd.read_excel(path, sheet_name='02_Products')
@@ -95,9 +80,6 @@ class Command(BaseCommand):
         df = pd.read_excel(path, sheet_name='03_Warehouses')
         count = 0
         for _, r in df.iterrows():
-            # warehouse_code có thể chưa tồn tại trong Excel cũ — fallback sinh
-            # mã từ warehouse_id để tránh fail. User nên cập nhật Excel với cột
-            # warehouse_code do người dùng tự đặt.
             wh_code = str(get_val(r, 'warehouse_code', '')).strip()
             if not wh_code:
                 wh_code = f'WH{int(r["warehouse_id"]):03d}'
@@ -131,7 +113,6 @@ class Command(BaseCommand):
                 receipt_status=str(r['receipt_status']).strip().upper(),
             )
             phieu.save()
-            # created_at có auto_now_add nên phải update sau khi save
             if created_at is not None:
                 InventoryReceipt.objects.filter(pk=phieu.pk).update(created_at=created_at)
             count += 1
@@ -150,8 +131,7 @@ class Command(BaseCommand):
             count += 1
         self.stdout.write(self.style.SUCCESS(f"  ReceiptDetails: đã nạp {count}"))
 
-        # Dựng lại bảng Inventory từ các phiếu đã duyệt
-        # (xóa trắng rồi cộng/trừ lại từ đầu cho chắc)
+        # Tính lại Inventory từ các phiếu đã duyệt
         self.stdout.write(self.style.NOTICE("  Tính lại bảng Inventory..."))
         Inventory.objects.all().delete()
 

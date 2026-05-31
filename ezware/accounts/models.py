@@ -46,9 +46,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.username} ({self.user_role})"
 
     def save(self, *args, **kwargs):
-        # Đồng bộ is_staff (Django builtin) với user_role để:
-        #   1) user_role=admin luôn vào được /admin/
-        #   2) staff không vô tình được set is_staff=True qua import
+        # admin thì có quyền vào /admin/, các role khác thì không
         self.is_staff = (self.user_role == ROLE_ADMIN)
         super().save(*args, **kwargs)
 

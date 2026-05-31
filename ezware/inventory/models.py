@@ -10,7 +10,7 @@ from ezware.core.constants import (
 
 
 class InventoryReceipt(models.Model):
-    """Header phiếu nhập / xuất kho"""
+    """Header phiếu nhập / xuất kho."""
     receipt_id = models.AutoField(primary_key=True)
 
     warehouse = models.ForeignKey(
@@ -39,7 +39,7 @@ class InventoryReceipt(models.Model):
 
 
 class ReceiptDetail(models.Model):
-    """Từng dòng sản phẩm trong 1 phiếu nhập / xuất"""
+    """Một dòng sản phẩm trong phiếu nhập / xuất."""
     detail_id = models.AutoField(primary_key=True)
 
     receipt = models.ForeignKey(
@@ -63,7 +63,7 @@ class ReceiptDetail(models.Model):
 
 
 class Inventory(models.Model):
-    """Bảng tổng hợp tồn kho thực tế của từng sản phẩm tại từng kho"""
+    """Tồn kho thực tế của từng sản phẩm tại từng kho."""
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.CASCADE,
@@ -80,7 +80,6 @@ class Inventory(models.Model):
 
     class Meta:
         db_table = 'inventory'
-        # Cặp (warehouse, product) là khóa chính phức hợp
         unique_together = [('warehouse', 'product')]
         indexes = [
             models.Index(fields=['warehouse', 'product']),

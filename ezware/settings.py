@@ -4,11 +4,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ----------------------------------------------------------------------------
-# Cấu hình bảo mật & môi trường: ưu tiên đọc từ biến môi trường (Render, .env),
-# có fallback an toàn cho lúc chạy local. Các giá trị fallback CHỈ DÙNG CHO DEV
-# — khi deploy production phải set env vars thật trên Render dashboard.
-# ----------------------------------------------------------------------------
+
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-ezware-python')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
@@ -18,6 +14,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
 ]
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -40,8 +37,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # whitenoise: serve static files (CSS/JS của Swagger UI) trên production
-    # mà không cần Nginx — đặt ngay sau SecurityMiddleware theo doc whitenoise.
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -99,17 +94,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-# whitenoise nén + cache-bust static files (CompressedManifestStorage thêm hash
-# vào filename, giúp browser cache mãnh liệt mà không sợ stale).
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 REST_FRAMEWORK = {
-    # Chỉ dùng TokenAuthentication cho API. KHÔNG bật SessionAuthentication
-    # vì nó kích hoạt CSRF check khi browser có sẵn session cookie của Django
-    # admin → mọi POST/PUT/DELETE (kể cả /login) sẽ fail với "CSRF token missing".
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
